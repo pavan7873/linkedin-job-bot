@@ -1,0 +1,8 @@
+.env
+auth/state.json
+__pycache__/
+*.pyc
+/auth/browser_data/
+/auth/state.json
+database/__pycache__/
+scrapper/__pycache__/
