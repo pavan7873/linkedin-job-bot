@@ -1,6 +1,9 @@
 import random
 import time
 
+from scraper.parser import parse_post
+from scraper.time_filter import is_within_last_hour
+
 from config import (
     SCROLL_STEP_MIN,
     SCROLL_STEP_MAX,
@@ -13,10 +16,8 @@ from config import (
 
 def auto_scroll(page):
     """
-    Scroll LinkedIn search results until no more content is loaded.
-
-    Returns:
-        dict: Scrolling statistics.
+    Scroll LinkedIn search results until a post older than 1 hour
+    is reached or no more content is available.
     """
 
     print("\n========== Starting Auto Scroll ==========\n")
@@ -32,6 +33,24 @@ def auto_scroll(page):
 
         posts = page.locator('[role="listitem"]').count()
 
+        # Stop if last visible post is older than 1 hour
+        if posts > 0:
+            try:
+                last_post = page.locator('[role="listitem"]').nth(posts - 1)
+                text = last_post.inner_text()
+
+                post = parse_post(text)
+
+                posted = post.get("posted")
+
+                if posted and not is_within_last_hour(posted):
+                    print(f"\nReached post older than 1 hour ({posted})")
+                    print("Stopping scroll...\n")
+                    break
+
+            except Exception as e:
+                print(f"Timestamp check failed: {e}")
+
         current_top = main.evaluate("el => el.scrollTop")
         current_height = main.evaluate("el => el.scrollHeight")
 
@@ -40,24 +59,32 @@ def auto_scroll(page):
             SCROLL_STEP_MAX,
         )
 
-        wait_time = random.randint(
-            SCROLL_WAIT_MIN,
-            SCROLL_WAIT_MAX,
-        )
-
         main.evaluate(
             f"(el) => el.scrollBy(0, {step})"
         )
 
-        page.wait_for_timeout(wait_time)
+        # Wait until new posts appear (max 5 seconds)
+        start_wait = time.time()
+
+        while time.time() - start_wait < 5:
+
+            page.wait_for_timeout(300)
+
+            new_posts = page.locator('[role="listitem"]').count()
+
+            if new_posts > posts:
+                print(f"Loaded new posts: {posts} -> {new_posts}")
+                break
 
         new_top = main.evaluate("el => el.scrollTop")
         new_height = main.evaluate("el => el.scrollHeight")
 
         moved = abs(new_top - current_top) > 5
-        loaded_new_content = new_height > current_height
+        loaded_new_content = (
+            new_height > current_height or
+            new_posts > posts
+        )
 
-        # Double check before considering end of feed
         if not moved and not loaded_new_content:
 
             page.wait_for_timeout(RECHECK_WAIT)
@@ -66,30 +93,21 @@ def auto_scroll(page):
             new_height = main.evaluate("el => el.scrollHeight")
 
             moved = abs(new_top - current_top) > 5
-            loaded_new_content = new_height > current_height
+            loaded_new_content = (
+                new_height > current_height or
+                page.locator('[role="listitem"]').count() > posts
+            )
 
         scroll_count += 1
 
         print("-" * 55)
         print(f"Scroll #{scroll_count}")
-        print(f"Visible Posts : {posts}")
-        print(f"Scroll Top    : {int(new_top)}")
-        print(f"Scroll Height : {int(new_height)}")
+        print(f"Visible Posts : {page.locator('[role=\"listitem\"]').count()}")
 
         if moved or loaded_new_content:
             empty_scrolls = 0
-
-            if loaded_new_content:
-                status = "New content loaded"
-            else:
-                status = "Scrolling"
-
         else:
             empty_scrolls += 1
-            status = f"No new content ({empty_scrolls}/{MAX_EMPTY_SCROLLS})"
-
-        print(f"Status        : {status}")
-        print("-" * 55)
 
         if empty_scrolls >= MAX_EMPTY_SCROLLS:
             print("\nReached end of available content.\n")

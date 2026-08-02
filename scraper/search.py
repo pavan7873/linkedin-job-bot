@@ -1,4 +1,6 @@
 # scraper/search.py
+from scraper.time_filter import is_within_last_hour
+# scraper/search.py
 
 from urllib.parse import quote
 from scraper.parser import parse_post
@@ -18,6 +20,12 @@ def search_keyword(page, keyword):
         wait_until="domcontentloaded"
     )
 
+    # Wait until the page has at least one post
+    page.locator('[role="listitem"]').first.wait_for(timeout=15000)
+
+    # Small buffer to let LinkedIn finish rendering
+    page.wait_for_timeout(1000)
+    
     print(page.evaluate("window.innerHeight"))
     print(page.evaluate("document.body.scrollHeight"))
     print(page.evaluate("window.scrollY"))
@@ -36,8 +44,10 @@ def search_keyword(page, keyword):
 
         text = posts.nth(i).inner_text()
         post = parse_post(text)
-        post["search_keyword"] = keyword
-        post["scraped_at"] = datetime.now().isoformat(timespec="seconds")
-        posts_data.append(post)
+        posted = post.get("posted")
 
+        if posted and is_within_last_hour(posted):
+            post["search_keyword"] = keyword
+            post["scraped_at"] = datetime.now().isoformat(timespec="seconds")
+            posts_data.append(post)   
     return posts_data
