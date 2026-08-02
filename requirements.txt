@@ -1,3 +1,4 @@
 playwright==1.54.0
-python-dotenv
-pip freeze > requirements.txt
+python-dotenv==0.9.9
+requests==2.32.5
+psycopg2-binary==3.3.4

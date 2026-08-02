@@ -4,7 +4,7 @@ from config import SEARCH_PREFIX, SEARCH_KEYWORDS, HEADLESS
 from scraper.search import search_keyword
 from scraper.merger import merge_results
 from database.insert_posts import insert_posts
-
+from webhook import trigger_n8n
 
 def main():
 
@@ -70,7 +70,13 @@ def main():
     print(f"Inserted         : {total_inserted}")
     print(f"Duplicates       : {total_duplicates}")
     print("=" * 70)
+    summary = {
+        "total_scraped": total_scraped,
+        "inserted": total_inserted,
+        "duplicates": total_duplicates,
+    }
 
+    trigger_n8n(summary)
 
 if __name__ == "__main__":
     main()
