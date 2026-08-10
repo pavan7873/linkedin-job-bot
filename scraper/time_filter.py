@@ -34,4 +34,4 @@ def is_within_last_hour(posted):
     if minutes is None:
         return False
 
-    return minutes <= 300
+    return minutes <= 60
