@@ -6,3 +6,6 @@ __pycache__/
 /auth/state.json
 database/__pycache__/
 scrapper/__pycache__/
+debug.txt
+log.txt
+/output/merged_posts.json
