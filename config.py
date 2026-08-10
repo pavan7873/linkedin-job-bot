@@ -7,10 +7,10 @@ SEARCH_KEYWORDS = [
     "Microsoft Fabric",
     "Azure Databricks",
     "Azure Data Factory",
-    "PySpark"
+    "Pyspark"
 ]
     
-HEADLESS = False
+HEADLESS = True
 
 WAIT_TIME = 3000
 
